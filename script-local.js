@@ -1,4 +1,4 @@
-// 게임 상태 관리
+// 로컬 스토리지 버전 (임시 테스트용)
 let currentUser = null;
 let gameState = {
     isPlaying: false,
@@ -11,8 +11,59 @@ let gameState = {
     nextPunchTimer: null
 };
 
-// Google Sheets API 설정
-const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxdotx3SRNYZPrGB0POKw9KxLc9fVTD8bMPkTTHmPGSfOLsVpNU9OwFop7Xt7mfjaXwWA/exec';
+// 로컬 스토리지에서 사용자 데이터 관리
+const LocalStorage = {
+    getUsers() {
+        const users = localStorage.getItem('users');
+        return users ? JSON.parse(users) : {};
+    },
+    
+    saveUser(username, userData) {
+        const users = this.getUsers();
+        users[username] = userData;
+        localStorage.setItem('users', JSON.stringify(users));
+    },
+    
+    getUser(username) {
+        const users = this.getUsers();
+        return users[username] || null;
+    },
+    
+    saveGameResult(username, score, goldenPunches) {
+        const games = JSON.parse(localStorage.getItem('games') || '[]');
+        games.push({
+            username,
+            score,
+            goldenPunches,
+            timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('games', JSON.stringify(games));
+    },
+    
+    getRankings() {
+        const users = this.getUsers();
+        const games = JSON.parse(localStorage.getItem('games') || '[]');
+        
+        // 사용자별 통계 계산
+        const stats = {};
+        games.forEach(game => {
+            if (!stats[game.username]) {
+                stats[game.username] = {
+                    username: game.username,
+                    totalScore: 0,
+                    totalGames: 0,
+                    goldenPunches: 0,
+                    coins: users[game.username]?.coins || 5
+                };
+            }
+            stats[game.username].totalScore += game.score;
+            stats[game.username].totalGames += 1;
+            stats[game.username].goldenPunches += game.goldenPunches;
+        });
+        
+        return Object.values(stats).sort((a, b) => b.totalScore - a.totalScore).slice(0, 10);
+    }
+};
 
 // DOM 요소들
 const screens = {
@@ -43,31 +94,10 @@ const elements = {
     rankingList: document.getElementById('rankingList')
 };
 
-// 모달 요소들
-const modals = {
-    coinRequest: document.getElementById('coinRequestModal'),
-    coinRequestNotification: document.getElementById('coinRequestNotificationModal')
-};
-
-const modalElements = {
-    requestTargetUser: document.getElementById('requestTargetUser'),
-    requestMessage: document.getElementById('requestMessage'),
-    sendRequestBtn: document.getElementById('sendRequestBtn'),
-    cancelRequestBtn: document.getElementById('cancelRequestBtn'),
-    requestFromUser: document.getElementById('requestFromUser'),
-    requestMessageText: document.getElementById('requestMessageText'),
-    acceptRequestBtn: document.getElementById('acceptRequestBtn'),
-    rejectRequestBtn: document.getElementById('rejectRequestBtn')
-};
-
 // 이벤트 리스너 등록
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
-    checkForCoinRequests();
     loadRankings();
-    
-    // 7초마다 코인 요청 확인
-    setInterval(checkForCoinRequests, 7000);
 });
 
 function setupEventListeners() {
@@ -93,12 +123,6 @@ function setupEventListeners() {
     elements.playAgainBtn.addEventListener('click', startGame);
     elements.backToMenuFromGameOverBtn.addEventListener('click', backToMenu);
 
-    // 모달
-    modalElements.sendRequestBtn.addEventListener('click', sendCoinRequest);
-    modalElements.cancelRequestBtn.addEventListener('click', hideCoinRequestModal);
-    modalElements.acceptRequestBtn.addEventListener('click', acceptCoinRequest);
-    modalElements.rejectRequestBtn.addEventListener('click', rejectCoinRequest);
-
     // 뚝배기 클릭 이벤트
     const burners = document.querySelectorAll('.burner');
     burners.forEach((burner, index) => {
@@ -115,7 +139,7 @@ function showScreen(screenName) {
 }
 
 // 로그인 처리
-async function handleLogin() {
+function handleLogin() {
     const username = elements.username.value.trim();
     const password = elements.password.value.trim();
 
@@ -129,39 +153,31 @@ async function handleLogin() {
         return;
     }
 
-    try {
-        const response = await fetch(GOOGLE_SHEETS_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'login',
-                username: username,
-                password: password
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            currentUser = {
-                username: username,
-                coins: data.coins || 5,
-                totalScore: data.totalScore || 0,
-                totalGames: data.totalGames || 0,
-                goldenPunches: data.goldenPunches || 0
-            };
-            
-            updateUserDisplay();
-            showScreen('mainMenu');
-        } else {
-            alert(data.message || '로그인에 실패했습니다.');
+    const existingUser = LocalStorage.getUser(username);
+    
+    if (!existingUser) {
+        // 새 사용자 생성
+        const newUser = {
+            username: username,
+            password: password,
+            coins: 5,
+            totalScore: 0,
+            totalGames: 0,
+            goldenPunches: 0
+        };
+        LocalStorage.saveUser(username, newUser);
+        currentUser = newUser;
+    } else {
+        // 기존 사용자 확인
+        if (existingUser.password !== password) {
+            alert('비밀번호가 일치하지 않습니다.');
+            return;
         }
-    } catch (error) {
-        console.error('Login error:', error);
-        alert('로그인 중 오류가 발생했습니다.');
+        currentUser = existingUser;
     }
+    
+    updateUserDisplay();
+    showScreen('mainMenu');
 }
 
 // 사용자 정보 업데이트
@@ -181,12 +197,13 @@ function startGame() {
     }
 
     if (currentUser.coins <= 0) {
-        alert('코인이 부족합니다. 코인을 요청해주세요.');
+        alert('코인이 부족합니다.');
         return;
     }
 
     // 코인 차감
     currentUser.coins--;
+    LocalStorage.saveUser(currentUser.username, currentUser);
     updateUserDisplay();
 
     // 게임 상태 초기화
@@ -303,11 +320,6 @@ function hitPunch(index) {
     const punch = document.querySelector(`[data-index="${index}"] .punch`);
     const isGolden = gameState.currentPunch.isGolden;
 
-    // 효과음 재생
-    const sound = isGolden ? document.getElementById('goldenHitSound') : document.getElementById('hitSound');
-    sound.currentTime = 0;
-    sound.play().catch(e => console.log('Audio play failed:', e));
-
     // 애니메이션 효과
     punch.classList.add('hit');
     
@@ -321,6 +333,7 @@ function hitPunch(index) {
         gameState.goldenPunches++;
         gameState.timeLeft += 5; // 5초 추가
         currentUser.coins++; // 코인 1개 추가
+        LocalStorage.saveUser(currentUser.username, currentUser);
         updateUserDisplay();
     } else {
         gameState.score += 1;
@@ -382,7 +395,7 @@ function createGoldenParticles(index) {
 }
 
 // 게임 종료
-async function endGame() {
+function endGame() {
     gameState.isPlaying = false;
     
     // 타이머 정리
@@ -394,7 +407,7 @@ async function endGame() {
     hideAllPunches();
 
     // 게임 결과 저장
-    await saveGameResult();
+    saveGameResult();
 
     // 게임 종료 화면 표시
     elements.finalScore.textContent = gameState.score;
@@ -404,40 +417,20 @@ async function endGame() {
 }
 
 // 게임 결과 저장
-async function saveGameResult() {
+function saveGameResult() {
     if (!currentUser) return;
 
-    try {
-        const response = await fetch(GOOGLE_SHEETS_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'saveGameResult',
-                username: currentUser.username,
-                score: gameState.score,
-                goldenPunches: gameState.goldenPunches,
-                timeLeft: gameState.timeLeft
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            // 사용자 정보 업데이트
-            currentUser.totalScore = data.totalScore;
-            currentUser.totalGames = data.totalGames;
-            currentUser.goldenPunches = data.goldenPunches;
-            currentUser.coins = data.coins;
-            updateUserDisplay();
-            
-            // 랭킹 업데이트
-            loadRankings();
-        }
-    } catch (error) {
-        console.error('Save game result error:', error);
-    }
+    // 로컬 스토리지에 게임 결과 저장
+    LocalStorage.saveGameResult(currentUser.username, gameState.score, gameState.goldenPunches);
+    
+    // 사용자 통계 업데이트
+    currentUser.totalScore += gameState.score;
+    currentUser.totalGames += 1;
+    currentUser.goldenPunches += gameState.goldenPunches;
+    LocalStorage.saveUser(currentUser.username, currentUser);
+    
+    // 랭킹 업데이트
+    loadRankings();
 }
 
 // 게임 일시정지
@@ -488,184 +481,15 @@ function logout() {
     showScreen('login');
 }
 
-// 코인 요청 모달 표시
+// 코인 요청 모달 표시 (로컬 버전에서는 간단한 알림)
 function showCoinRequestModal() {
-    modalElements.requestTargetUser.value = '';
-    modalElements.requestMessage.value = '';
-    modals.coinRequest.classList.add('show');
-}
-
-// 코인 요청 모달 숨기기
-function hideCoinRequestModal() {
-    modals.coinRequest.classList.remove('show');
-}
-
-// 코인 요청 보내기
-async function sendCoinRequest() {
-    const targetUser = modalElements.requestTargetUser.value.trim();
-    const message = modalElements.requestMessage.value.trim();
-
-    if (!targetUser || !message) {
-        alert('받는 사람과 메시지를 입력해주세요.');
-        return;
-    }
-
-    if (targetUser === currentUser.username) {
-        alert('자신에게는 코인을 요청할 수 없습니다.');
-        return;
-    }
-
-    try {
-        const response = await fetch(GOOGLE_SHEETS_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'sendCoinRequest',
-                fromUser: currentUser.username,
-                toUser: targetUser,
-                message: message
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            alert('코인 요청이 전송되었습니다.');
-            hideCoinRequestModal();
-        } else {
-            alert(data.message || '코인 요청 전송에 실패했습니다.');
-        }
-    } catch (error) {
-        console.error('Send coin request error:', error);
-        alert('코인 요청 전송 중 오류가 발생했습니다.');
-    }
-}
-
-// 코인 요청 확인
-async function checkForCoinRequests() {
-    if (!currentUser) return;
-
-    try {
-        const response = await fetch(GOOGLE_SHEETS_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'checkCoinRequests',
-                username: currentUser.username
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success && data.requests && data.requests.length > 0) {
-            // 첫 번째 요청만 표시
-            const request = data.requests[0];
-            showCoinRequestNotification(request);
-        }
-    } catch (error) {
-        console.error('Check coin requests error:', error);
-    }
-}
-
-// 코인 요청 알림 표시
-function showCoinRequestNotification(request) {
-    modalElements.requestFromUser.textContent = request.fromUser;
-    modalElements.requestMessageText.textContent = request.message;
-    
-    // 요청 ID 저장
-    modals.coinRequestNotification.dataset.requestId = request.id;
-    
-    modals.coinRequestNotification.classList.add('show');
-}
-
-// 코인 요청 수락
-async function acceptCoinRequest() {
-    const requestId = modals.coinRequestNotification.dataset.requestId;
-    
-    try {
-        const response = await fetch(GOOGLE_SHEETS_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'acceptCoinRequest',
-                requestId: requestId,
-                username: currentUser.username
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            currentUser.coins = data.coins;
-            updateUserDisplay();
-            alert('코인 요청을 수락했습니다. 각자 5개의 코인이 지급되었습니다.');
-            modals.coinRequestNotification.classList.remove('show');
-        } else {
-            alert(data.message || '코인 요청 수락에 실패했습니다.');
-        }
-    } catch (error) {
-        console.error('Accept coin request error:', error);
-        alert('코인 요청 수락 중 오류가 발생했습니다.');
-    }
-}
-
-// 코인 요청 거부
-async function rejectCoinRequest() {
-    const requestId = modals.coinRequestNotification.dataset.requestId;
-    
-    try {
-        const response = await fetch(GOOGLE_SHEETS_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'rejectCoinRequest',
-                requestId: requestId
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            alert('코인 요청을 거부했습니다.');
-            modals.coinRequestNotification.classList.remove('show');
-        } else {
-            alert(data.message || '코인 요청 거부에 실패했습니다.');
-        }
-    } catch (error) {
-        console.error('Reject coin request error:', error);
-        alert('코인 요청 거부 중 오류가 발생했습니다.');
-    }
+    alert('로컬 버전에서는 코인 요청 기능을 사용할 수 없습니다.\nGoogle Apps Script 버전에서 사용해주세요.');
 }
 
 // 랭킹 로드
-async function loadRankings() {
-    try {
-        const response = await fetch(GOOGLE_SHEETS_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'getRankings'
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success && data.rankings) {
-            displayRankings(data.rankings);
-        }
-    } catch (error) {
-        console.error('Load rankings error:', error);
-    }
+function loadRankings() {
+    const rankings = LocalStorage.getRankings();
+    displayRankings(rankings);
 }
 
 // 랭킹 표시
@@ -694,12 +518,12 @@ function displayRankings(rankings) {
     });
 }
 
-// 디버깅 모드 토글 (개발용)
+// 디버깅 모드 토글
 function toggleDebugMode() {
     const gameBoard = document.querySelector('.game-board');
     gameBoard.classList.toggle('debug');
     console.log('디버그 모드:', gameBoard.classList.contains('debug'));
 }
 
-// 전역 함수로 노출 (개발용)
+// 전역 함수로 노출
 window.toggleDebugMode = toggleDebugMode; 

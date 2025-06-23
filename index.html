@@ -14,14 +14,11 @@
     <div id="loginScreen" class="screen active">
         <div class="login-container">
             <div class="login-background">
-                <div class="mole-hills">
-                    <div class="hill hill1"></div>
-                    <div class="hill hill2"></div>
-                    <div class="hill hill3"></div>
+                <div class="punch-hero">
+                    <img src="punch.png" alt="뚝배기" class="punch-image">
                 </div>
             </div>
             <div class="login-form">
-                <div class="punch-image"></div>
                 <h1>뚝배기 팡팡!<br>스트레스 팡팡!</h1>
                 <div class="input-group">
                     <input type="text" id="username" placeholder="이름을 입력하세요" maxlength="10">
@@ -59,38 +56,53 @@
             <div class="game-info">
                 <div class="score">점수: <span id="currentScore">0</span>점</div>
                 <div class="timer">시간: <span id="timeLeft">30.00</span>초</div>
+                <div class="coin-display">🪙 <span id="gameCoinCount">0</span>개</div>
             </div>
             <button id="pauseBtn" class="btn-pause">⏸️</button>
         </div>
 
         <div class="game-board">
-            <div class="mole-grid">
-                <div class="mole-hole" data-index="0">
-                    <div class="mole"></div>
-                </div>
-                <div class="mole-hole" data-index="1">
-                    <div class="mole"></div>
-                </div>
-                <div class="mole-hole" data-index="2">
-                    <div class="mole"></div>
-                </div>
-                <div class="mole-hole" data-index="3">
-                    <div class="mole"></div>
-                </div>
-                <div class="mole-hole" data-index="4">
-                    <div class="mole"></div>
-                </div>
-                <div class="mole-hole" data-index="5">
-                    <div class="mole"></div>
-                </div>
-                <div class="mole-hole" data-index="6">
-                    <div class="mole"></div>
-                </div>
-                <div class="mole-hole" data-index="7">
-                    <div class="mole"></div>
-                </div>
-                <div class="mole-hole" data-index="8">
-                    <div class="mole"></div>
+            <div class="stove-container">
+                <div class="stove">
+                    <div class="stove-top"></div>
+                    <div class="burner-grid">
+                        <div class="burner" data-index="0">
+                            <div class="burner-ring"></div>
+                            <div class="punch"></div>
+                        </div>
+                        <div class="burner" data-index="1">
+                            <div class="burner-ring"></div>
+                            <div class="punch"></div>
+                        </div>
+                        <div class="burner" data-index="2">
+                            <div class="burner-ring"></div>
+                            <div class="punch"></div>
+                        </div>
+                        <div class="burner" data-index="3">
+                            <div class="burner-ring"></div>
+                            <div class="punch"></div>
+                        </div>
+                        <div class="burner" data-index="4">
+                            <div class="burner-ring"></div>
+                            <div class="punch"></div>
+                        </div>
+                        <div class="burner" data-index="5">
+                            <div class="burner-ring"></div>
+                            <div class="punch"></div>
+                        </div>
+                        <div class="burner" data-index="6">
+                            <div class="burner-ring"></div>
+                            <div class="punch"></div>
+                        </div>
+                        <div class="burner" data-index="7">
+                            <div class="burner-ring"></div>
+                            <div class="punch"></div>
+                        </div>
+                        <div class="burner" data-index="8">
+                            <div class="burner-ring"></div>
+                            <div class="punch"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -111,7 +123,7 @@
             <h2>게임 종료!</h2>
             <div class="final-score">
                 <p>최종 점수: <span id="finalScore">0</span>점</p>
-                <p>황금뚝배기: <span id="goldenMoles">0</span>개</p>
+                <p>황금뚝배기: <span id="goldenPunches">0</span>개</p>
             </div>
             <div class="game-over-buttons">
                 <button id="playAgainBtn" class="btn-primary">다시하기</button>
