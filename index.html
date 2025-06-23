@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>뚝배기 팡팡! 스트레스 팡팡!</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 로그인 화면 -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <div class="login-background">
+                <div class="mole-hills">
+                    <div class="hill hill1"></div>
+                    <div class="hill hill2"></div>
+                    <div class="hill hill3"></div>
+                </div>
+            </div>
+            <div class="login-form">
+                <div class="punch-image"></div>
+                <h1>뚝배기 팡팡!<br>스트레스 팡팡!</h1>
+                <div class="input-group">
+                    <input type="text" id="username" placeholder="이름을 입력하세요" maxlength="10">
+                </div>
+                <div class="input-group">
+                    <input type="password" id="password" placeholder="비밀번호 (4자리 숫자)" maxlength="4" pattern="[0-9]{4}">
+                </div>
+                <button id="loginBtn" class="btn-primary">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 메뉴 화면 -->
+    <div id="mainMenu" class="screen">
+        <div class="menu-container">
+            <div class="user-info">
+                <h2>안녕하세요, <span id="userDisplayName"></span>님!</h2>
+                <div class="coin-info">
+                    <span class="coin-icon">🪙</span>
+                    <span id="coinCount">0</span>개
+                </div>
+            </div>
+            
+            <div class="menu-buttons">
+                <button id="playGameBtn" class="btn-game">게임 시작</button>
+                <button id="requestCoinBtn" class="btn-secondary">코인 요청</button>
+                <button id="logoutBtn" class="btn-secondary">로그아웃</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 게임 화면 -->
+    <div id="gameScreen" class="screen">
+        <div class="game-header">
+            <div class="game-info">
+                <div class="score">점수: <span id="currentScore">0</span>점</div>
+                <div class="timer">시간: <span id="timeLeft">30.00</span>초</div>
+            </div>
+            <button id="pauseBtn" class="btn-pause">⏸️</button>
+        </div>
+
+        <div class="game-board">
+            <div class="mole-grid">
+                <div class="mole-hole" data-index="0">
+                    <div class="mole"></div>
+                </div>
+                <div class="mole-hole" data-index="1">
+                    <div class="mole"></div>
+                </div>
+                <div class="mole-hole" data-index="2">
+                    <div class="mole"></div>
+                </div>
+                <div class="mole-hole" data-index="3">
+                    <div class="mole"></div>
+                </div>
+                <div class="mole-hole" data-index="4">
+                    <div class="mole"></div>
+                </div>
+                <div class="mole-hole" data-index="5">
+                    <div class="mole"></div>
+                </div>
+                <div class="mole-hole" data-index="6">
+                    <div class="mole"></div>
+                </div>
+                <div class="mole-hole" data-index="7">
+                    <div class="mole"></div>
+                </div>
+                <div class="mole-hole" data-index="8">
+                    <div class="mole"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ranking-dashboard">
+            <h3>🏆 랭킹</h3>
+            <div id="rankingList" class="ranking-list">
+                <!-- 랭킹 데이터가 여기에 동적으로 추가됩니다 -->
+            </div>
+        </div>
+
+        <button id="backToMenuBtn" class="btn-back">메뉴로 돌아가기</button>
+    </div>
+
+    <!-- 게임 종료 화면 -->
+    <div id="gameOverScreen" class="screen">
+        <div class="game-over-container">
+            <h2>게임 종료!</h2>
+            <div class="final-score">
+                <p>최종 점수: <span id="finalScore">0</span>점</p>
+                <p>황금뚝배기: <span id="goldenMoles">0</span>개</p>
+            </div>
+            <div class="game-over-buttons">
+                <button id="playAgainBtn" class="btn-primary">다시하기</button>
+                <button id="backToMenuFromGameOverBtn" class="btn-secondary">메뉴로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 코인 요청 모달 -->
+    <div id="coinRequestModal" class="modal">
+        <div class="modal-content">
+            <h3>코인 요청</h3>
+            <div class="input-group">
+                <input type="text" id="requestTargetUser" placeholder="받는 사람 이름">
+            </div>
+            <div class="input-group">
+                <textarea id="requestMessage" placeholder="메시지를 입력하세요" rows="3"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button id="sendRequestBtn" class="btn-primary">요청 보내기</button>
+                <button id="cancelRequestBtn" class="btn-secondary">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 코인 요청 알림 모달 -->
+    <div id="coinRequestNotificationModal" class="modal">
+        <div class="modal-content">
+            <h3>코인 요청</h3>
+            <div class="request-info">
+                <p><strong id="requestFromUser"></strong>님이 코인을 요청했습니다.</p>
+                <p id="requestMessageText"></p>
+            </div>
+            <div class="modal-buttons">
+                <button id="acceptRequestBtn" class="btn-primary">수락</button>
+                <button id="rejectRequestBtn" class="btn-secondary">거부</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 효과음 -->
+    <audio id="hitSound" src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT" preload="auto"></audio>
+    <audio id="goldenHitSound" src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT" preload="auto"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html> 
